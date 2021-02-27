@@ -2,21 +2,40 @@
  * Copyright (c) 2018 TypeFox GmbH (http://www.typefox.io). All rights reserved.
  * Licensed under the MIT License. See License.txt in the project root for license information.
  * ------------------------------------------------------------------------------------------ */
-import type * as monaco from 'monaco-editor-core';
+import type * as monaco from 'monaco-editor';
 import globToRegExp = require('glob-to-regexp');
 import {
-    Languages, DiagnosticCollection, CompletionItemProvider, DocumentIdentifier, HoverProvider,
-    SignatureHelpProvider, DefinitionProvider, ReferenceProvider, DocumentHighlightProvider,
-    DocumentSymbolProvider, CodeActionProvider, CodeLensProvider, DocumentFormattingEditProvider, DocumentRangeFormattingEditProvider,
-    OnTypeFormattingEditProvider, RenameProvider,
-    DocumentFilter, DocumentSelector, DocumentLinkProvider, ImplementationProvider, TypeDefinitionProvider, DocumentColorProvider,
-    FoldingRangeProvider, SemanticTokensLegend,
-    DocumentSemanticTokensProvider, DocumentRangeSemanticTokensProvider
+    Languages,
+    DiagnosticCollection,
+    CompletionItemProvider,
+    DocumentIdentifier,
+    HoverProvider,
+    SignatureHelpProvider,
+    DefinitionProvider,
+    ReferenceProvider,
+    DocumentHighlightProvider,
+    DocumentSymbolProvider,
+    CodeActionProvider,
+    CodeLensProvider,
+    DocumentFormattingEditProvider,
+    DocumentRangeFormattingEditProvider,
+    OnTypeFormattingEditProvider,
+    RenameProvider,
+    DocumentFilter,
+    DocumentSelector,
+    DocumentLinkProvider,
+    ImplementationProvider,
+    TypeDefinitionProvider,
+    DocumentColorProvider,
+    FoldingRangeProvider,
+    SemanticTokensLegend,
+    DocumentSemanticTokensProvider,
+    DocumentRangeSemanticTokensProvider
 } from "./services";
 
-import { MonacoDiagnosticCollection } from './monaco-diagnostic-collection';
-import { ProtocolToMonacoConverter, MonacoToProtocolConverter } from './monaco-converter';
-import { DisposableCollection, Disposable } from './disposable';
+import {MonacoDiagnosticCollection} from './monaco-diagnostic-collection';
+import {ProtocolToMonacoConverter, MonacoToProtocolConverter} from './monaco-converter';
+import {DisposableCollection, Disposable} from './disposable';
 
 export interface MonacoModelIdentifier {
     uri: monaco.Uri;
@@ -30,6 +49,7 @@ export namespace MonacoModelIdentifier {
             languageId: document.languageId
         }
     }
+
     export function fromModel(model: monaco.editor.IReadOnlyModel): MonacoModelIdentifier {
         return {
             uri: model.uri,
@@ -52,7 +72,9 @@ export class MonacoLanguages implements Languages {
         protected readonly _monaco: typeof monaco,
         protected readonly p2m: ProtocolToMonacoConverter,
         protected readonly m2p: MonacoToProtocolConverter
-    ) { }
+    ) {
+        console.log("in MonacoLanguages constructor...")
+    }
 
     match(selector: DocumentSelector, document: DocumentIdentifier): boolean {
         return this.matchModel(selector, MonacoModelIdentifier.fromDocument(this._monaco, document));
@@ -63,11 +85,14 @@ export class MonacoLanguages implements Languages {
     }
 
     registerCompletionItemProvider(selector: DocumentSelector, provider: CompletionItemProvider, ...triggerCharacters: string[]): Disposable {
+        console.log("monaco-languages:registerCompletionItemProvider...", selector, provider, triggerCharacters)
         const completionProvider = this.createCompletionProvider(selector, provider, ...triggerCharacters);
         const providers = new DisposableCollection();
         for (const language of this.matchLanguage(selector)) {
+            console.log("Provider for ", language, ":", provider)
             providers.push(this._monaco.languages.registerCompletionItemProvider(language, completionProvider))
-        };
+        }
+        ;
         return providers;
     }
 
@@ -474,7 +499,7 @@ export class MonacoLanguages implements Languages {
                     return undefined;
                 }
                 const textDocument = this.m2p.asTextDocumentIdentifier(model);
-                const result = await provider.provideDocumentColors({ textDocument }, token);
+                const result = await provider.provideDocumentColors({textDocument}, token);
                 return result && this.p2m.asColorInformations(result);
             },
             provideColorPresentations: async (model, info, token) => {

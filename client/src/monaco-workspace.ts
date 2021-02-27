@@ -2,10 +2,11 @@
  * Copyright (c) 2018 TypeFox GmbH (http://www.typefox.io). All rights reserved.
  * Licensed under the MIT License. See License.txt in the project root for license information.
  * ------------------------------------------------------------------------------------------ */
-import type * as monaco from 'monaco-editor-core';
-import { MonacoToProtocolConverter, ProtocolToMonacoConverter } from './monaco-converter';
-import { Workspace, WorkspaceEdit, TextDocumentDidChangeEvent, Event, Emitter } from './services';
-import { TextDocument } from 'vscode-languageserver-textdocument'
+// import type * as monaco from 'monaco-editor';
+import type * as monaco from 'monaco-editor';
+import {MonacoToProtocolConverter, ProtocolToMonacoConverter} from './monaco-converter';
+import {Workspace, WorkspaceEdit, TextDocumentDidChangeEvent, Event, Emitter} from './services';
+import {TextDocument} from 'vscode-languageserver-textdocument'
 
 export class MonacoWorkspace implements Workspace {
 
@@ -55,7 +56,7 @@ export class MonacoWorkspace implements Workspace {
             const range = this.m2p.asRange(change.range);
             const rangeLength = change.rangeLength;
             const text = change.text;
-            contentChanges.push({ range, rangeLength, text });
+            contentChanges.push({range, rangeLength, text});
         }
         this.onDidChangeTextDocumentEmitter.fire({
             textDocument,
@@ -124,7 +125,7 @@ export class MonacoWorkspace implements Workspace {
                 [],  // Do not try and preserve editor selections.
                 editsByResource[uri].map(resourceEdit => {
                     return {
-                        identifier: { major: 1, minor: 0 },
+                        identifier: {major: 1, minor: 0},
                         range: resourceEdit.range,
                         text: resourceEdit.text,
                         forceMoveMarkers: true,

@@ -2,24 +2,67 @@
  * Copyright (c) 2018 TypeFox GmbH (http://www.typefox.io). All rights reserved.
  * Licensed under the MIT License. See License.txt in the project root for license information.
  * ------------------------------------------------------------------------------------------ */
-import type * as monaco from 'monaco-editor-core';
+import type * as monaco from 'monaco-editor';
 import * as ls from 'vscode-languageserver-protocol';
 import * as Is from 'vscode-languageserver-protocol/lib/common/utils/is';
 import {
-    CodeActionParams, CodeLensParams,
-    DocumentFormattingParams, DocumentOnTypeFormattingParams,
-    DocumentRangeFormattingParams, ReferenceParams,
-    RenameParams, TextDocumentPositionParams,
-    Position, TextDocumentIdentifier, CompletionItem, CompletionList,
-    CompletionParams, CompletionContext, CompletionTriggerKind,
-    InsertTextFormat, Range, Diagnostic, CompletionItemKind,
-    Hover, SignatureHelp, SignatureInformation, ParameterInformation,
-    Definition, DefinitionLink, Location, LocationLink, DocumentHighlight, DocumentHighlightKind,
-    SymbolInformation, DocumentSymbolParams, CodeActionContext, DiagnosticSeverity,
-    Command, CodeLens, FormattingOptions, TextEdit, WorkspaceEdit, DocumentLinkParams, DocumentLink,
-    MarkedString, MarkupContent, ColorInformation, ColorPresentation, FoldingRange, FoldingRangeKind,
-    DiagnosticRelatedInformation, MarkupKind, SymbolKind, DocumentSymbol, CodeAction, SignatureHelpContext, SignatureHelpTriggerKind,
-    SemanticTokens, InsertTextMode, AnnotatedTextEdit, ChangeAnnotation
+    InsertTextMode,
+    AnnotatedTextEdit,
+    ChangeAnnotation,
+    CodeActionParams,
+    CodeLensParams,
+    DocumentFormattingParams,
+    DocumentOnTypeFormattingParams,
+    DocumentRangeFormattingParams,
+    ReferenceParams,
+    RenameParams,
+    TextDocumentPositionParams,
+    Position,
+    TextDocumentIdentifier,
+    CompletionItem,
+    CompletionList,
+    CompletionParams,
+    CompletionContext,
+    CompletionTriggerKind,
+    InsertTextFormat,
+    Range,
+    Diagnostic,
+    CompletionItemKind,
+    Hover,
+    SignatureHelp,
+    SignatureInformation,
+    ParameterInformation,
+    Definition,
+    DefinitionLink,
+    Location,
+    LocationLink,
+    DocumentHighlight,
+    DocumentHighlightKind,
+    SymbolInformation,
+    DocumentSymbolParams,
+    CodeActionContext,
+    DiagnosticSeverity,
+    Command,
+    CodeLens,
+    FormattingOptions,
+    TextEdit,
+    WorkspaceEdit,
+    DocumentLinkParams,
+    DocumentLink,
+    MarkedString,
+    MarkupContent,
+    ColorInformation,
+    ColorPresentation,
+    FoldingRange,
+    FoldingRangeKind,
+    DiagnosticRelatedInformation,
+    MarkupKind,
+    SymbolKind,
+    DocumentSymbol,
+    CodeAction,
+    SignatureHelpContext,
+    SignatureHelpTriggerKind,
+    SemanticTokens
 } from './services';
 
 export type RecursivePartial<T> = {
@@ -29,6 +72,7 @@ export type RecursivePartial<T> = {
 export interface ProtocolDocumentLink extends monaco.languages.ILink {
     data?: any;
 }
+
 export namespace ProtocolDocumentLink {
     export function is(item: any): item is ProtocolDocumentLink {
         return !!item && 'data' in item;
@@ -38,6 +82,7 @@ export namespace ProtocolDocumentLink {
 export interface ProtocolCodeLens extends monaco.languages.CodeLens {
     data?: any;
 }
+
 export namespace ProtocolCodeLens {
     export function is(item: any): item is ProtocolCodeLens {
         return !!item && 'data' in item;
@@ -52,6 +97,7 @@ export interface ProtocolCompletionItem extends monaco.languages.CompletionItem 
     deprecated?: boolean;
     insertTextMode?: InsertTextMode;
 }
+
 export namespace ProtocolCompletionItem {
     export function is(item: any): item is ProtocolCompletionItem {
         return !!item && 'data' in item;
@@ -61,6 +107,7 @@ export namespace ProtocolCompletionItem {
 export interface ProtocolCodeAction extends monaco.languages.CodeAction {
     data?: any;
 }
+
 export namespace ProtocolCodeAction {
     export function is(item: any): item is ProtocolCodeAction {
         return !!item && 'data' in item;
@@ -74,7 +121,8 @@ function isRangeReplace(v: Partial<monaco.IRange> | RangeReplace): v is RangeRep
 }
 
 export class MonacoToProtocolConverter {
-    public constructor(protected readonly _monaco: typeof monaco) { }
+    public constructor(protected readonly _monaco: typeof monaco) {
+    }
 
     asPosition(lineNumber: undefined | null, column: undefined | null): {};
     asPosition(lineNumber: number, column: undefined | null): Pick<Position, 'line'>;
@@ -216,9 +264,11 @@ export class MonacoToProtocolConverter {
     }
 
     asCompletionItem(item: monaco.languages.CompletionItem): CompletionItem {
-        const result: CompletionItem = { label: item.label as string };
+        const result: CompletionItem = {label: item.label as string};
         const protocolItem = ProtocolCompletionItem.is(item) ? item : undefined;
-        if (item.detail) { result.detail = item.detail; }
+        if (item.detail) {
+            result.detail = item.detail;
+        }
         // We only send items back we created. So this can't be something else than
         // a string right now.
         if (item.documentation) {
@@ -228,16 +278,28 @@ export class MonacoToProtocolConverter {
                 result.documentation = this.asDocumentation(protocolItem.documentationFormat, item.documentation);
             }
         }
-        if (item.filterText) { result.filterText = item.filterText; }
+        if (item.filterText) {
+            result.filterText = item.filterText;
+        }
         this.fillPrimaryInsertText(result, item as ProtocolCompletionItem);
         if (Is.number(item.kind)) {
             result.kind = this.asCompletionItemKind(item.kind, protocolItem && protocolItem.originalItemKind);
         }
-        if (item.sortText) { result.sortText = item.sortText; }
-        if (item.additionalTextEdits) { result.additionalTextEdits = this.asTextEdits(item.additionalTextEdits); }
-        if (item.command) { result.command = this.asCommand(item.command); }
-        if (item.commitCharacters) { result.commitCharacters = item.commitCharacters.slice(); }
-        if (item.command) { result.command = this.asCommand(item.command); }
+        if (item.sortText) {
+            result.sortText = item.sortText;
+        }
+        if (item.additionalTextEdits) {
+            result.additionalTextEdits = this.asTextEdits(item.additionalTextEdits);
+        }
+        if (item.command) {
+            result.command = this.asCommand(item.command);
+        }
+        if (item.commitCharacters) {
+            result.commitCharacters = item.commitCharacters.slice();
+        }
+        if (item.command) {
+            result.command = this.asCommand(item.command);
+        }
         // TODO if (item.preselect === true || item.preselect === false) { result.preselect = item.preselect; }
         if (protocolItem) {
             if (protocolItem.data !== undefined) {
@@ -255,42 +317,69 @@ export class MonacoToProtocolConverter {
             return original;
         }
         switch (value) {
-            case this._monaco.languages.CompletionItemKind.Method: return CompletionItemKind.Method;
-            case this._monaco.languages.CompletionItemKind.Function: return CompletionItemKind.Function;
-            case this._monaco.languages.CompletionItemKind.Constructor: return CompletionItemKind.Constructor;
-            case this._monaco.languages.CompletionItemKind.Field: return CompletionItemKind.Field;
-            case this._monaco.languages.CompletionItemKind.Variable: return CompletionItemKind.Variable;
-            case this._monaco.languages.CompletionItemKind.Class: return CompletionItemKind.Class;
-            case this._monaco.languages.CompletionItemKind.Struct: return CompletionItemKind.Struct;
-            case this._monaco.languages.CompletionItemKind.Interface: return CompletionItemKind.Interface;
-            case this._monaco.languages.CompletionItemKind.Module: return CompletionItemKind.Module;
-            case this._monaco.languages.CompletionItemKind.Property: return CompletionItemKind.Property;
-            case this._monaco.languages.CompletionItemKind.Event: return CompletionItemKind.Event;
-            case this._monaco.languages.CompletionItemKind.Operator: return CompletionItemKind.Operator;
-            case this._monaco.languages.CompletionItemKind.Unit: return CompletionItemKind.Unit;
-            case this._monaco.languages.CompletionItemKind.Value: return CompletionItemKind.Value;
-            case this._monaco.languages.CompletionItemKind.Constant: return CompletionItemKind.Constant;
-            case this._monaco.languages.CompletionItemKind.Enum: return CompletionItemKind.Enum;
-            case this._monaco.languages.CompletionItemKind.EnumMember: return CompletionItemKind.EnumMember;
-            case this._monaco.languages.CompletionItemKind.Keyword: return CompletionItemKind.Keyword;
-            case this._monaco.languages.CompletionItemKind.Text: return CompletionItemKind.Text;
-            case this._monaco.languages.CompletionItemKind.Color: return CompletionItemKind.Color;
-            case this._monaco.languages.CompletionItemKind.File: return CompletionItemKind.File;
-            case this._monaco.languages.CompletionItemKind.Reference: return CompletionItemKind.Reference;
-            case this._monaco.languages.CompletionItemKind.Customcolor: return CompletionItemKind.Color;
-            case this._monaco.languages.CompletionItemKind.Folder: return CompletionItemKind.Folder;
-            case this._monaco.languages.CompletionItemKind.TypeParameter: return CompletionItemKind.TypeParameter;
-            case this._monaco.languages.CompletionItemKind.Snippet: return CompletionItemKind.Snippet;
-            default: return value + 1 as CompletionItemKind;
+            case this._monaco.languages.CompletionItemKind.Method:
+                return CompletionItemKind.Method;
+            case this._monaco.languages.CompletionItemKind.Function:
+                return CompletionItemKind.Function;
+            case this._monaco.languages.CompletionItemKind.Constructor:
+                return CompletionItemKind.Constructor;
+            case this._monaco.languages.CompletionItemKind.Field:
+                return CompletionItemKind.Field;
+            case this._monaco.languages.CompletionItemKind.Variable:
+                return CompletionItemKind.Variable;
+            case this._monaco.languages.CompletionItemKind.Class:
+                return CompletionItemKind.Class;
+            case this._monaco.languages.CompletionItemKind.Struct:
+                return CompletionItemKind.Struct;
+            case this._monaco.languages.CompletionItemKind.Interface:
+                return CompletionItemKind.Interface;
+            case this._monaco.languages.CompletionItemKind.Module:
+                return CompletionItemKind.Module;
+            case this._monaco.languages.CompletionItemKind.Property:
+                return CompletionItemKind.Property;
+            case this._monaco.languages.CompletionItemKind.Event:
+                return CompletionItemKind.Event;
+            case this._monaco.languages.CompletionItemKind.Operator:
+                return CompletionItemKind.Operator;
+            case this._monaco.languages.CompletionItemKind.Unit:
+                return CompletionItemKind.Unit;
+            case this._monaco.languages.CompletionItemKind.Value:
+                return CompletionItemKind.Value;
+            case this._monaco.languages.CompletionItemKind.Constant:
+                return CompletionItemKind.Constant;
+            case this._monaco.languages.CompletionItemKind.Enum:
+                return CompletionItemKind.Enum;
+            case this._monaco.languages.CompletionItemKind.EnumMember:
+                return CompletionItemKind.EnumMember;
+            case this._monaco.languages.CompletionItemKind.Keyword:
+                return CompletionItemKind.Keyword;
+            case this._monaco.languages.CompletionItemKind.Text:
+                return CompletionItemKind.Text;
+            case this._monaco.languages.CompletionItemKind.Color:
+                return CompletionItemKind.Color;
+            case this._monaco.languages.CompletionItemKind.File:
+                return CompletionItemKind.File;
+            case this._monaco.languages.CompletionItemKind.Reference:
+                return CompletionItemKind.Reference;
+            case this._monaco.languages.CompletionItemKind.Customcolor:
+                return CompletionItemKind.Color;
+            case this._monaco.languages.CompletionItemKind.Folder:
+                return CompletionItemKind.Folder;
+            case this._monaco.languages.CompletionItemKind.TypeParameter:
+                return CompletionItemKind.TypeParameter;
+            case this._monaco.languages.CompletionItemKind.Snippet:
+                return CompletionItemKind.Snippet;
+            default:
+                return value + 1 as CompletionItemKind;
         }
     }
 
     protected asDocumentation(format: string, documentation: string | monaco.IMarkdownString): string | MarkupContent {
         switch (format) {
             case MarkupKind.PlainText:
-                return { kind: format, value: documentation as string };
+                return {kind: format, value: documentation as string};
             case MarkupKind.Markdown:
-                return { kind: format, value: (documentation as monaco.IMarkdownString).value };
+                return {kind: format, value: (documentation as monaco.IMarkdownString).value};
             default:
                 return `Unsupported Markup content received. Kind is: ${format}`;
         }
@@ -313,7 +402,7 @@ export class MonacoToProtocolConverter {
 
         target.insertTextFormat = format;
         if (source.fromEdit && text && range) {
-            target.textEdit = { newText: text, range: range };
+            target.textEdit = {newText: text, range: range};
         } else {
             target.insertText = text;
         }
@@ -342,7 +431,7 @@ export class MonacoToProtocolConverter {
         return {
             textDocument: this.asTextDocumentIdentifier(model),
             position: this.asPosition(position.lineNumber, position.column),
-            context: { includeDeclaration: options.includeDeclaration }
+            context: {includeDeclaration: options.includeDeclaration}
         };
     }
 
@@ -411,15 +500,20 @@ export class MonacoToProtocolConverter {
 
     asCodeLens(item: monaco.languages.CodeLens): CodeLens {
         let result = CodeLens.create(this.asRange(item.range));
-        if (item.command) { result.command = this.asCommand(item.command); }
+        if (item.command) {
+            result.command = this.asCommand(item.command);
+        }
         if (ProtocolCodeLens.is(item)) {
-            if (item.data) { result.data = item.data };
+            if (item.data) {
+                result.data = item.data
+            }
+            ;
         }
         return result;
     }
 
     asFormattingOptions(options: monaco.languages.FormattingOptions): FormattingOptions {
-        return { tabSize: options.tabSize, insertSpaces: options.insertSpaces };
+        return {tabSize: options.tabSize, insertSpaces: options.insertSpaces};
     }
 
     asDocumentFormattingParams(model: monaco.editor.IReadOnlyModel, options: monaco.languages.FormattingOptions): DocumentFormattingParams {
@@ -462,16 +556,20 @@ export class MonacoToProtocolConverter {
 
     asDocumentLink(item: monaco.languages.ILink): DocumentLink {
         let result = DocumentLink.create(this.asRange(item.range));
-        if (item.url) { result.target = typeof item.url === 'string' ? item.url : item.url.toString(); }
+        if (item.url) {
+            result.target = typeof item.url === 'string' ? item.url : item.url.toString();
+        }
         if (ProtocolDocumentLink.is(item) && item.data) {
             result.data = item.data;
         }
-        if (item.tooltip) { result.tooltip = item.tooltip }
+        if (item.tooltip) {
+            result.tooltip = item.tooltip
+        }
         return result;
     }
 
     asCodeAction(item: monaco.languages.CodeAction): CodeAction {
-        const result: CodeAction = { title: item.title }
+        const result: CodeAction = {title: item.title}
         const protocolCodeAction = ProtocolCodeAction.is(item) ? item : undefined;
         if (Is.number(item.kind)) {
             result.kind = item.kind;
@@ -480,7 +578,7 @@ export class MonacoToProtocolConverter {
             result.diagnostics = this.asDiagnostics(item.diagnostics);
         }
         if (item.edit) {
-            throw new Error (`VS Code code actions can only be converted to a protocol code action without an edit.`);
+            throw new Error(`VS Code code actions can only be converted to a protocol code action without an edit.`);
         }
         if (item.command) {
             result.command = this.asCommand(item.command);
@@ -489,7 +587,7 @@ export class MonacoToProtocolConverter {
             result.isPreferred = item.isPreferred;
         }
         if (item.disabled) {
-            result.disabled = { reason: item.disabled };
+            result.disabled = {reason: item.disabled};
         }
         if (protocolCodeAction) {
             if (protocolCodeAction.data !== undefined) {
@@ -501,7 +599,8 @@ export class MonacoToProtocolConverter {
 }
 
 export class ProtocolToMonacoConverter {
-    public constructor(protected readonly _monaco: typeof monaco) { }
+    public constructor(protected readonly _monaco: typeof monaco) {
+    }
 
     asResourceEdits(resource: monaco.Uri, edits: (TextEdit | AnnotatedTextEdit)[], asMetadata: (annotation: ls.ChangeAnnotationIdentifier | undefined) => monaco.languages.WorkspaceEditMetadata | undefined, modelVersionId?: number): monaco.languages.WorkspaceTextEdit[] {
         return edits.map(edit => ({
@@ -614,9 +713,13 @@ export class ProtocolToMonacoConverter {
             return undefined;
         }
         const range = this.asRange(item.range);
-        let result = <ProtocolCodeLens>{ range };
-        if (item.command) { result.command = this.asCommand(item.command); }
-        if (item.data !== void 0 && item.data !== null) { result.data = item.data; }
+        let result = <ProtocolCodeLens>{range};
+        if (item.command) {
+            result.command = this.asCommand(item.command);
+        }
+        if (item.data !== void 0 && item.data !== null) {
+            result.data = item.data;
+        }
         return result;
     }
 
@@ -629,14 +732,16 @@ export class ProtocolToMonacoConverter {
         }
         return {
             lenses: items.map((codeLens) => this.asCodeLens(codeLens)),
-            dispose: () => { }
+            dispose: () => {
+            }
         };
     }
 
     asCodeActionList(actions: (Command | CodeAction)[]): monaco.languages.CodeActionList {
         return {
             actions: actions.map(action => this.asCodeAction(action)),
-            dispose: () => { }
+            dispose: () => {
+            }
         };
     }
 
@@ -708,7 +813,7 @@ export class ProtocolToMonacoConverter {
     }
 
     asSymbolInformation(item: SymbolInformation, uri?: monaco.Uri): monaco.languages.DocumentSymbol {
-        const location = this.asLocation(uri ? { ...item.location, uri: uri.toString() } : item.location);
+        const location = this.asLocation(uri ? {...item.location, uri: uri.toString()} : item.location);
         return {
             name: item.name,
             detail: '',
@@ -741,7 +846,7 @@ export class ProtocolToMonacoConverter {
     asDocumentHighlight(item: DocumentHighlight): monaco.languages.DocumentHighlight {
         const range = this.asRange(item.range)!;
         const kind = Is.number(item.kind) ? this.asDocumentHighlightKind(item.kind) : undefined!;
-        return { range, kind };
+        return {range, kind};
     }
 
     asDocumentHighlightKind(item: number): monaco.languages.DocumentHighlightKind {
@@ -848,7 +953,8 @@ export class ProtocolToMonacoConverter {
         }
         return {
             value: result,
-            dispose: () => { }
+            dispose: () => {
+            }
         };
     }
 
@@ -857,14 +963,18 @@ export class ProtocolToMonacoConverter {
     }
 
     asSignatureInformation(item: SignatureInformation): monaco.languages.SignatureInformation {
-        let result = <monaco.languages.SignatureInformation>{ label: item.label };
-        if (item.documentation) { result.documentation = this.asDocumentation(item.documentation); }
+        let result = <monaco.languages.SignatureInformation>{label: item.label};
+        if (item.documentation) {
+            result.documentation = this.asDocumentation(item.documentation);
+        }
         if (item.parameters) {
             result.parameters = this.asParameterInformations(item.parameters);
         } else {
             result.parameters = [];
         }
-        if (item.activeParameter) { result.activeParameter = item.activeParameter }
+        if (item.activeParameter) {
+            result.activeParameter = item.activeParameter
+        }
         return result;
     }
 
@@ -873,8 +983,11 @@ export class ProtocolToMonacoConverter {
     }
 
     asParameterInformation(item: ParameterInformation): monaco.languages.ParameterInformation {
-        let result = <monaco.languages.ParameterInformation>{ label: item.label };
-        if (item.documentation) { result.documentation = this.asDocumentation(item.documentation) };
+        let result = <monaco.languages.ParameterInformation>{label: item.label};
+        if (item.documentation) {
+            result.documentation = this.asDocumentation(item.documentation)
+        }
+        ;
         return result;
     }
 
@@ -915,9 +1028,9 @@ export class ProtocolToMonacoConverter {
             };
         }
         if (Is.string(content)) {
-            return { value: content };
+            return {value: content};
         }
-        const { language, value } = content;
+        const {language, value} = content;
         return {
             value: '```' + language + '\n' + value + '\n```'
         };
@@ -999,13 +1112,18 @@ export class ProtocolToMonacoConverter {
     }
 
     asCompletionItem(item: CompletionItem, defaultRange: monaco.IRange | RangeReplace): ProtocolCompletionItem {
-        const result = <ProtocolCompletionItem>{ label: item.label };
-        if (item.detail) { result.detail = item.detail; }
+        const result = <ProtocolCompletionItem>{label: item.label};
+        if (item.detail) {
+            result.detail = item.detail;
+        }
         if (item.documentation) {
             result.documentation = this.asDocumentation(item.documentation);
             result.documentationFormat = Is.string(item.documentation) ? undefined : item.documentation.kind;
-        };
-        if (item.filterText) { result.filterText = item.filterText; }
+        }
+        ;
+        if (item.filterText) {
+            result.filterText = item.filterText;
+        }
         const insertText = this.asCompletionInsertText(item, defaultRange);
         result.insertText = insertText.insertText;
         result.range = insertText.range;
@@ -1020,13 +1138,27 @@ export class ProtocolToMonacoConverter {
                 result.originalItemKind = original;
             }
         }
-        if (item.sortText) { result.sortText = item.sortText; }
-        if (item.additionalTextEdits) { result.additionalTextEdits = this.asTextEdits(item.additionalTextEdits); }
-        if (Is.stringArray(item.commitCharacters)) { result.commitCharacters = item.commitCharacters.slice(); }
-        if (item.command) { result.command = this.asCommand(item.command); }
-        if (item.deprecated === true || item.deprecated === false) { result.deprecated = item.deprecated; }
-        if (item.preselect === true || item.preselect === false) { result.preselect = item.preselect; }
-        if (item.data !== undefined) { result.data = item.data; }
+        if (item.sortText) {
+            result.sortText = item.sortText;
+        }
+        if (item.additionalTextEdits) {
+            result.additionalTextEdits = this.asTextEdits(item.additionalTextEdits);
+        }
+        if (Is.stringArray(item.commitCharacters)) {
+            result.commitCharacters = item.commitCharacters.slice();
+        }
+        if (item.command) {
+            result.command = this.asCommand(item.command);
+        }
+        if (item.deprecated === true || item.deprecated === false) {
+            result.deprecated = item.deprecated;
+        }
+        if (item.preselect === true || item.preselect === false) {
+            result.preselect = item.preselect;
+        }
+        if (item.data !== undefined) {
+            result.data = item.data;
+        }
         if (item.deprecated === true || item.deprecated === false) {
             result.deprecated = item.deprecated;
         }
@@ -1037,35 +1169,62 @@ export class ProtocolToMonacoConverter {
     asCompletionItemKind(value: CompletionItemKind): [monaco.languages.CompletionItemKind, CompletionItemKind | undefined] {
         if (CompletionItemKind.Text <= value && value <= CompletionItemKind.TypeParameter) {
             switch (value) {
-                case CompletionItemKind.Text: return [this._monaco.languages.CompletionItemKind.Text, undefined];
-                case CompletionItemKind.Method: return [this._monaco.languages.CompletionItemKind.Method, undefined];
-                case CompletionItemKind.Function: return [this._monaco.languages.CompletionItemKind.Function, undefined];
-                case CompletionItemKind.Constructor: return [this._monaco.languages.CompletionItemKind.Constructor, undefined];
-                case CompletionItemKind.Field: return [this._monaco.languages.CompletionItemKind.Field, undefined];
-                case CompletionItemKind.Variable: return [this._monaco.languages.CompletionItemKind.Variable, undefined];
-                case CompletionItemKind.Class: return [this._monaco.languages.CompletionItemKind.Class, undefined];
-                case CompletionItemKind.Interface: return [this._monaco.languages.CompletionItemKind.Interface, undefined];
-                case CompletionItemKind.Module: return [this._monaco.languages.CompletionItemKind.Module, undefined];
-                case CompletionItemKind.Property: return [this._monaco.languages.CompletionItemKind.Property, undefined];
-                case CompletionItemKind.Unit: return [this._monaco.languages.CompletionItemKind.Unit, undefined];
-                case CompletionItemKind.Value: return [this._monaco.languages.CompletionItemKind.Value, undefined];
-                case CompletionItemKind.Enum: return [this._monaco.languages.CompletionItemKind.Enum, undefined];
-                case CompletionItemKind.Keyword: return [this._monaco.languages.CompletionItemKind.Keyword, undefined];
-                case CompletionItemKind.Snippet: return [this._monaco.languages.CompletionItemKind.Snippet, undefined];
-                case CompletionItemKind.Color: return [this._monaco.languages.CompletionItemKind.Color, undefined];
-                case CompletionItemKind.File: return [this._monaco.languages.CompletionItemKind.File, undefined];
-                case CompletionItemKind.Reference: return [this._monaco.languages.CompletionItemKind.Reference, undefined];
-                case CompletionItemKind.Folder: return [this._monaco.languages.CompletionItemKind.Folder, undefined];
-                case CompletionItemKind.EnumMember: return [this._monaco.languages.CompletionItemKind.EnumMember, undefined];
-                case CompletionItemKind.Constant: return [this._monaco.languages.CompletionItemKind.Constant, undefined];
-                case CompletionItemKind.Struct: return [this._monaco.languages.CompletionItemKind.Struct, undefined];
-                case CompletionItemKind.Event: return [this._monaco.languages.CompletionItemKind.Event, undefined];
-                case CompletionItemKind.Operator: return [this._monaco.languages.CompletionItemKind.Operator, undefined];
-                case CompletionItemKind.TypeParameter: return [this._monaco.languages.CompletionItemKind.TypeParameter, undefined];
-                default: return [value - 1, undefined];
+                case CompletionItemKind.Text:
+                    return [this._monaco.languages.CompletionItemKind.Text, undefined];
+                case CompletionItemKind.Method:
+                    return [this._monaco.languages.CompletionItemKind.Method, undefined];
+                case CompletionItemKind.Function:
+                    return [this._monaco.languages.CompletionItemKind.Function, undefined];
+                case CompletionItemKind.Constructor:
+                    return [this._monaco.languages.CompletionItemKind.Constructor, undefined];
+                case CompletionItemKind.Field:
+                    return [this._monaco.languages.CompletionItemKind.Field, undefined];
+                case CompletionItemKind.Variable:
+                    return [this._monaco.languages.CompletionItemKind.Variable, undefined];
+                case CompletionItemKind.Class:
+                    return [this._monaco.languages.CompletionItemKind.Class, undefined];
+                case CompletionItemKind.Interface:
+                    return [this._monaco.languages.CompletionItemKind.Interface, undefined];
+                case CompletionItemKind.Module:
+                    return [this._monaco.languages.CompletionItemKind.Module, undefined];
+                case CompletionItemKind.Property:
+                    return [this._monaco.languages.CompletionItemKind.Property, undefined];
+                case CompletionItemKind.Unit:
+                    return [this._monaco.languages.CompletionItemKind.Unit, undefined];
+                case CompletionItemKind.Value:
+                    return [this._monaco.languages.CompletionItemKind.Value, undefined];
+                case CompletionItemKind.Enum:
+                    return [this._monaco.languages.CompletionItemKind.Enum, undefined];
+                case CompletionItemKind.Keyword:
+                    return [this._monaco.languages.CompletionItemKind.Keyword, undefined];
+                case CompletionItemKind.Snippet:
+                    return [this._monaco.languages.CompletionItemKind.Snippet, undefined];
+                case CompletionItemKind.Color:
+                    return [this._monaco.languages.CompletionItemKind.Color, undefined];
+                case CompletionItemKind.File:
+                    return [this._monaco.languages.CompletionItemKind.File, undefined];
+                case CompletionItemKind.Reference:
+                    return [this._monaco.languages.CompletionItemKind.Reference, undefined];
+                case CompletionItemKind.Folder:
+                    return [this._monaco.languages.CompletionItemKind.Folder, undefined];
+                case CompletionItemKind.EnumMember:
+                    return [this._monaco.languages.CompletionItemKind.EnumMember, undefined];
+                case CompletionItemKind.Constant:
+                    return [this._monaco.languages.CompletionItemKind.Constant, undefined];
+                case CompletionItemKind.Struct:
+                    return [this._monaco.languages.CompletionItemKind.Struct, undefined];
+                case CompletionItemKind.Event:
+                    return [this._monaco.languages.CompletionItemKind.Event, undefined];
+                case CompletionItemKind.Operator:
+                    return [this._monaco.languages.CompletionItemKind.Operator, undefined];
+                case CompletionItemKind.TypeParameter:
+                    return [this._monaco.languages.CompletionItemKind.TypeParameter, undefined];
+                default:
+                    return [value - 1, undefined];
             }
 
-        };
+        }
+        ;
         return [CompletionItemKind.Text, value];
     }
 
@@ -1076,25 +1235,25 @@ export class ProtocolToMonacoConverter {
             if (TextEdit.is(item.textEdit)) {
                 const range = this.asRange(item.textEdit.range);
                 const value = item.textEdit.newText;
-                return { isSnippet, insertText: value, range, fromEdit: true, };
+                return {isSnippet, insertText: value, range, fromEdit: true,};
             } else {
                 const range = {
                     insert: this.asRange(item.textEdit.insert),
                     replace: this.asRange(item.textEdit.replace)
                 };
                 const value = item.textEdit.newText;
-                return { isSnippet, insertText: value, range, fromEdit: true, };
+                return {isSnippet, insertText: value, range, fromEdit: true,};
             }
         }
         if (item.insertText) {
-            return { isSnippet, insertText: item.insertText, fromEdit: false, range: defaultRange };
+            return {isSnippet, insertText: item.insertText, fromEdit: false, range: defaultRange};
         }
-        return { insertText: item.label, range: defaultRange, fromEdit: false, isSnippet: false };
+        return {insertText: item.label, range: defaultRange, fromEdit: false, isSnippet: false};
     }
 
     asDocumentLinks(documentLinks: DocumentLink[]): monaco.languages.ILinksList {
         const links = documentLinks.map(link => this.asDocumentLink(link));
-        return { links };
+        return {links};
     }
 
     asDocumentLink(documentLink: DocumentLink): ProtocolDocumentLink {
@@ -1130,7 +1289,7 @@ export class ProtocolToMonacoConverter {
         const startColumn = !start || start.column === undefined ? undefined : start.column;
         const endLineNumber = !end || end.lineNumber === undefined ? undefined : end.lineNumber;
         const endColumn = !end || end.column === undefined ? undefined : end.column;
-        return { startLineNumber, startColumn, endLineNumber, endColumn };
+        return {startLineNumber, startColumn, endLineNumber, endColumn};
     }
 
     asPosition(position: null): null;
@@ -1148,13 +1307,13 @@ export class ProtocolToMonacoConverter {
         if (position === null) {
             return null;
         }
-        const { line, character } = position;
+        const {line, character} = position;
         const lineNumber = line === undefined ? undefined : line + 1;
         const column = character === undefined ? undefined : character + 1;
         if (lineNumber !== undefined && column !== undefined) {
             return new this._monaco.Position(lineNumber, column);
         }
-        return { lineNumber, column };
+        return {lineNumber, column};
     }
 
     asColorInformations(items: ColorInformation[]): monaco.languages.IColorInformation[] {
@@ -1206,7 +1365,8 @@ export class ProtocolToMonacoConverter {
                     return this._monaco.languages.FoldingRangeKind.Imports;
                 case FoldingRangeKind.Region:
                     return this._monaco.languages.FoldingRangeKind.Region;
-            };
+            }
+            ;
         }
         return undefined;
     }

@@ -2,13 +2,14 @@
  * Copyright (c) 2018 TypeFox GmbH (http://www.typefox.io). All rights reserved.
  * Licensed under the MIT License. See License.txt in the project root for license information.
  * ------------------------------------------------------------------------------------------ */
-import type * as monaco from 'monaco-editor-core';
-import { MonacoToProtocolConverter, ProtocolToMonacoConverter } from "./monaco-converter";
-import { MonacoCommands } from './monaco-commands';
-import { MonacoLanguages } from "./monaco-languages";
-import { MonacoWorkspace } from "./monaco-workspace";
-import { ConsoleWindow } from "./console-window";
-import { Services } from "./services";
+// import type * as monaco from 'monaco-editor';
+import type * as monaco from 'monaco-editor'
+import {MonacoToProtocolConverter, ProtocolToMonacoConverter} from "./monaco-converter";
+import {MonacoCommands} from './monaco-commands';
+import {MonacoLanguages} from "./monaco-languages";
+import {MonacoWorkspace} from "./monaco-workspace";
+import {ConsoleWindow} from "./console-window";
+import {Services} from "./services";
 
 export interface MonacoServices extends Services {
     commands: MonacoCommands
@@ -16,14 +17,18 @@ export interface MonacoServices extends Services {
     workspace: MonacoWorkspace
     window: ConsoleWindow
 }
+
 export namespace MonacoServices {
     export interface Options {
         rootUri?: string
     }
+
     export type Provider = () => MonacoServices;
+
     export function create(_monaco: typeof monaco, options: Options = {}): MonacoServices {
         const m2p = new MonacoToProtocolConverter(_monaco);
         const p2m = new ProtocolToMonacoConverter(_monaco);
+        console.log("created m2p and p2m converts...")
         return {
             commands: new MonacoCommands(_monaco),
             languages: new MonacoLanguages(_monaco, p2m, m2p),
@@ -31,11 +36,14 @@ export namespace MonacoServices {
             window: new ConsoleWindow()
         }
     }
+
     export function install(_monaco: typeof monaco, options: Options = {}): MonacoServices {
+        console.log("installing monaco-services, global symbols...")
         const services = create(_monaco, options);
         Services.install(services);
         return services;
     }
+
     export function get(): MonacoServices {
         return Services.get() as MonacoServices;
     }

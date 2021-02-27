@@ -20,13 +20,13 @@ import {
     SemanticTokensDeltaParams
 } from 'vscode-languageserver-protocol';
 
-import { TextDocument } from 'vscode-languageserver-textdocument';
+import {TextDocument} from 'vscode-languageserver-textdocument';
 
 import {
     Disposable, CancellationToken, Event, Emitter
 } from 'vscode-jsonrpc';
 
-import { URI as Uri } from 'vscode-uri';
+import {URI as Uri} from 'vscode-uri';
 
 export {
     Disposable, CancellationToken, Event, Emitter
@@ -43,6 +43,7 @@ export interface Services {
     commands?: Commands;
     window?: Window;
 }
+
 export namespace Services {
     const global = window as any;
     const symbol = Symbol('Services');
@@ -54,6 +55,7 @@ export namespace Services {
         }
         return services;
     }
+
     export function install(services: Services): Disposable {
         if (global[symbol]) {
             console.warn('Language Client services have been overridden');
@@ -79,6 +81,7 @@ export type ProviderResult<T> = T | undefined | null | PromiseLike<T | undefined
 
 export interface CompletionItemProvider {
     provideCompletionItems(params: CompletionParams, token: CancellationToken): ProviderResult<CompletionItem[] | CompletionList>;
+
     resolveCompletionItem?(item: CompletionItem, token: CancellationToken): ProviderResult<CompletionItem>;
 }
 
@@ -110,6 +113,7 @@ export interface SignatureHelpContext {
 export interface SignatureHelpProvider {
     readonly triggerCharacters?: ReadonlyArray<string>;
     readonly retriggerCharacters?: ReadonlyArray<string>;
+
     provideSignatureHelp(params: TextDocumentPositionParams, token: CancellationToken, context: SignatureHelpContext): ProviderResult<SignatureHelp>;
 }
 
@@ -139,6 +143,7 @@ export interface CodeActionProvider {
 
 export interface CodeLensProvider {
     provideCodeLenses(params: CodeLensParams, token: CancellationToken): ProviderResult<CodeLens[]>;
+
     resolveCodeLens?(codeLens: CodeLens, token: CancellationToken): ProviderResult<CodeLens>;
 }
 
@@ -160,6 +165,7 @@ export interface RenameProvider {
 
 export interface DocumentLinkProvider {
     provideDocumentLinks(params: DocumentLinkParams, token: CancellationToken): ProviderResult<DocumentLink[]>;
+
     resolveDocumentLink?(link: DocumentLink, token: CancellationToken): ProviderResult<DocumentLink>;
 }
 
@@ -167,6 +173,7 @@ export interface DocumentIdentifier {
     uri: string;
     languageId: string;
 }
+
 export namespace DocumentIdentifier {
     export function is(arg: any): arg is DocumentIdentifier {
         return !!arg && ('uri' in arg) && ('languageId' in arg);
@@ -187,6 +194,7 @@ export interface DeclarationProvider {
 
 export interface DocumentColorProvider {
     provideDocumentColors(params: DocumentColorParams, token: CancellationToken): ProviderResult<ColorInformation[]>;
+
     provideColorPresentations(params: ColorPresentationParams, token: CancellationToken): ProviderResult<ColorPresentation[]>;
 }
 
@@ -200,6 +208,7 @@ export interface SelectionRangeProvider {
 
 export interface DocumentSemanticTokensProvider {
     provideDocumentSemanticTokens(params: SemanticTokensParams, token: CancellationToken): ProviderResult<SemanticTokens>;
+
     provideDocumentSemanticTokensEdits?(params: SemanticTokensDeltaParams, token: CancellationToken): ProviderResult<SemanticTokens | SemanticTokensEdit>;
 }
 
@@ -209,29 +218,53 @@ export interface DocumentRangeSemanticTokensProvider {
 
 export interface Languages {
     match(selector: DocumentSelector, document: DocumentIdentifier): boolean;
+
     createDiagnosticCollection?(name?: string): DiagnosticCollection;
+
     registerCompletionItemProvider?(selector: DocumentSelector, provider: CompletionItemProvider, ...triggerCharacters: string[]): Disposable;
+
     registerHoverProvider?(selector: DocumentSelector, provider: HoverProvider): Disposable;
+
     registerSignatureHelpProvider?(selector: DocumentSelector, provider: SignatureHelpProvider): Disposable;
+
     registerDefinitionProvider?(selector: DocumentSelector, provider: DefinitionProvider): Disposable;
+
     registerReferenceProvider?(selector: DocumentSelector, provider: ReferenceProvider): Disposable;
+
     registerDocumentHighlightProvider?(selector: DocumentSelector, provider: DocumentHighlightProvider): Disposable;
+
     registerDocumentSymbolProvider?(selector: DocumentSelector, provider: DocumentSymbolProvider): Disposable;
+
     registerWorkspaceSymbolProvider?(provider: WorkspaceSymbolProvider): Disposable;
+
     registerCodeActionsProvider?(selector: DocumentSelector, provider: CodeActionProvider): Disposable;
+
     registerCodeLensProvider?(selector: DocumentSelector, provider: CodeLensProvider): Disposable;
+
     registerDocumentFormattingEditProvider?(selector: DocumentSelector, provider: DocumentFormattingEditProvider): Disposable;
+
     registerDocumentRangeFormattingEditProvider?(selector: DocumentSelector, provider: DocumentRangeFormattingEditProvider): Disposable;
+
     registerOnTypeFormattingEditProvider?(selector: DocumentSelector, provider: OnTypeFormattingEditProvider, firstTriggerCharacter: string, ...moreTriggerCharacter: string[]): Disposable;
+
     registerRenameProvider?(selector: DocumentSelector, provider: RenameProvider): Disposable;
+
     registerDocumentLinkProvider?(selector: DocumentSelector, provider: DocumentLinkProvider): Disposable;
+
     registerImplementationProvider?(selector: DocumentSelector, provider: ImplementationProvider): Disposable;
+
     registerTypeDefinitionProvider?(selector: DocumentSelector, provider: TypeDefinitionProvider): Disposable;
+
     registerDeclarationProvider?(selector: DocumentSelector, provider: DeclarationProvider): Disposable;
+
     registerColorProvider?(selector: DocumentSelector, provider: DocumentColorProvider): Disposable;
+
     registerFoldingRangeProvider?(selector: DocumentSelector, provider: FoldingRangeProvider): Disposable;
+
     registerSelectionRangeProvider?(selector: DocumentSelector, provider: SelectionRangeProvider): Disposable;
+
     registerDocumentSemanticTokensProvider?(selector: DocumentSelector, provider: DocumentSemanticTokensProvider, legend: SemanticTokensLegend): Disposable;
+
     registerDocumentRangeSemanticTokensProvider?(selector: DocumentSelector, provider: DocumentRangeSemanticTokensProvider, legend: SemanticTokensLegend): Disposable;
 }
 
@@ -243,6 +276,7 @@ export interface TextDocumentDidChangeEvent {
 export interface TextDocumentWillSaveEvent {
     readonly textDocument: TextDocument;
     readonly reason: TextDocumentSaveReason;
+
     waitUntil?(PromiseLike: PromiseLike<TextEdit[]>): void;
 }
 
@@ -254,9 +288,13 @@ export enum ConfigurationTarget {
 
 export interface WorkspaceConfiguration {
     toJSON(): any;
+
     get<T>(section: string): T | undefined;
+
     get<T>(section: string, defaultValue: T): T;
+
     has(section: string): boolean;
+
     readonly [key: string]: any;
 }
 
@@ -269,8 +307,10 @@ export interface FileSystemWatcher extends Disposable {
 export interface ConfigurationChangeEvent {
     affectsConfiguration(section: string): boolean;
 }
+
 export interface Configurations {
     getConfiguration(section?: string, resource?: string): WorkspaceConfiguration;
+
     readonly onDidChangeConfiguration: Event<ConfigurationChangeEvent>;
 }
 
@@ -287,7 +327,9 @@ export interface Workspace {
     readonly configurations?: Configurations;
     readonly onWillSaveTextDocument?: Event<TextDocumentWillSaveEvent>;
     readonly onDidSaveTextDocument?: Event<TextDocument>;
+
     applyEdit(changes: WorkspaceEdit): PromiseLike<boolean>;
+
     createFileSystemWatcher?(globPattern: string, ignoreCreateEvents?: boolean, ignoreChangeEvents?: boolean, ignoreDeleteEvents?: boolean): FileSystemWatcher;
 }
 
@@ -297,12 +339,16 @@ export interface Commands {
 
 export interface OutputChannel extends Disposable {
     append(value: string): void;
+
     appendLine(line: string): void;
+
     show(preserveFocus?: boolean): void;
 }
 
 export interface Window {
     showMessage<T extends MessageActionItem>(type: MessageType, message: string, ...actions: T[]): PromiseLike<T | undefined>;
+
     createOutputChannel?(name: string): OutputChannel;
+
     withProgress?: typeof import('vscode').window.withProgress
 }
