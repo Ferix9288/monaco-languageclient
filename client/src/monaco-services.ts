@@ -28,7 +28,6 @@ export namespace MonacoServices {
     export function create(_monaco: typeof monaco, options: Options = {}): MonacoServices {
         const m2p = new MonacoToProtocolConverter(_monaco);
         const p2m = new ProtocolToMonacoConverter(_monaco);
-        console.log("created m2p and p2m converts...")
         return {
             commands: new MonacoCommands(_monaco),
             languages: new MonacoLanguages(_monaco, p2m, m2p),
@@ -38,7 +37,6 @@ export namespace MonacoServices {
     }
 
     export function install(_monaco: typeof monaco, options: Options = {}): MonacoServices {
-        console.log("installing monaco-services, global symbols...")
         const services = create(_monaco, options);
         Services.install(services);
         return services;

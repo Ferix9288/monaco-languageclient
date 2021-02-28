@@ -5,7 +5,7 @@
 // import type * as monaco from 'monaco-editor';
 import type * as monaco from 'monaco-editor';
 import {MonacoToProtocolConverter, ProtocolToMonacoConverter} from './monaco-converter';
-import {Workspace, WorkspaceEdit, TextDocumentDidChangeEvent, Event, Emitter} from './services';
+import {Workspace, WorkspaceEdit, TextDocumentDidChangeEvent, Event, Emitter, Configurations} from './services';
 import {TextDocument} from 'vscode-languageserver-textdocument'
 
 export class MonacoWorkspace implements Workspace {
@@ -14,6 +14,7 @@ export class MonacoWorkspace implements Workspace {
     protected readonly onDidOpenTextDocumentEmitter = new Emitter<TextDocument>();
     protected readonly onDidCloseTextDocumentEmitter = new Emitter<TextDocument>();
     protected readonly onDidChangeTextDocumentEmitter = new Emitter<TextDocumentDidChangeEvent>();
+    public configurations: Configurations | undefined;
 
     constructor(
         protected readonly _monaco: typeof monaco,
@@ -25,6 +26,7 @@ export class MonacoWorkspace implements Workspace {
         }
         this._monaco.editor.onDidCreateModel(model => this.addModel(model));
         this._monaco.editor.onWillDisposeModel(model => this.removeModel(model));
+        this.configurations = undefined;
     }
 
     get rootUri() {
@@ -136,5 +138,4 @@ export class MonacoWorkspace implements Workspace {
         });
         return Promise.resolve(true);
     }
-
 }
