@@ -7,12 +7,18 @@ import * as monaco from 'monaco-editor'
 import {MessageConnection} from 'vscode-jsonrpc';
 import {
     MonacoLanguageClient, CloseAction, ErrorAction,
-    MonacoServices, createConnection, Configurations, WorkspaceConfiguration
+    MonacoServices, createConnection, Configurations, WorkspaceConfiguration, //MonacoProvideCompletionItemsSignature,
 } from 'monaco-languageclient';
 import normalizeUrl = require('normalize-url');
-// import {DidChangeConfigurationNotification} from "vscode-languageserver-protocol";
-import {Event} from "vscode-languageclient"; //state
-import {ConfigurationChangeEvent, EventEmitter} from "vscode";
+import {Event} from "vscode-languageclient";
+import {
+    CompletionItem,
+    CompletionItemKind,
+    ConfigurationChangeEvent,
+    EventEmitter,
+    Position, Range,
+    TextDocument
+} from "vscode";
 
 const ReconnectingWebSocket = require('reconnecting-websocket');
 
@@ -32,7 +38,7 @@ monaco.languages.register({
 
 // create Monaco editor
 monaco.editor.create(document.getElementById("container")!, {
-    model: monaco.editor.createModel("-- comment", 'lua', monaco.Uri.parse("file:///Users/fli/fetch-lua/blank/blank.lua")),
+    model: monaco.editor.createModel("-- comment", 'lua', monaco.Uri.parse("inmemory://blank.lua")), //monaco.Uri.parse("file:///Users/fli/fetch-lua/blank/blank.lua")),
     glyphMargin: true,
     lightbulb: {
         enabled: true
@@ -110,6 +116,36 @@ const workspaceConfiguration: { [key: string]: any } = {
 }
 
 MonacoServices.get().workspace.configurations = new WorkspaceConfigurations(workspaceConfiguration)
+// MonacoServices.get().languages.options = {
+//     provideCompletionItemsDecorator: (model: monaco.editor.ITextModel, position: monaco.Position, context: monaco.languages.CompletionContext, token: monaco.CancellationToken, next: MonacoProvideCompletionItemsSignature): monaco.languages.ProviderResult<monaco.languages.CompletionList> => {
+//         if (!model) {
+//             return undefined
+//         }
+//         var potentialTriggerWord = model.getLineContent(position.lineNumber)
+//         var matchIdx = potentialTriggerWord.indexOf("FETCH_POSE")
+//         if (matchIdx < 0) {
+//             return next(model, position, context, token)
+//         }
+//         // TODO: needs to replace FETCH_POSE. Right now, only replaces up to previous word
+//         var word = model.getWordUntilPosition(position);
+//         var range = {
+//             startLineNumber: position.lineNumber,
+//             endLineNumber: position.lineNumber,
+//             startColumn: matchIdx,
+//             endColumn: word.endColumn
+//         };
+//
+//         const fromNextResult = next(model, position, context, token)
+//         if (fromNextResult && "suggestions" in fromNextResult) {
+//             return {
+//                 ...fromNextResult,
+//                 suggestions: {...poseProposals(range), ...fromNextResult.suggestions}
+//             };
+//         } else return {
+//             suggestions: poseProposals(range)
+//         }
+//     },
+// }
 
 listen({
     webSocket,
@@ -118,19 +154,6 @@ listen({
         const languageClient = createLanguageClient(connection);
         const disposable = languageClient.start();
         connection.onClose(() => disposable.dispose());
-        // languageClient.onDidChangeState((e) => {
-        //     if (e.newState === State.Running) {
-        //         setTimeout(() => {
-        //             console.log("send workspace configuration")
-        //             languageClient.sendNotification(DidChangeConfigurationNotification.type,
-        //                 {
-        //                     settings: {
-        //                         workspaceConfiguration
-        //                     }
-        //                 })
-        //         }, 10 * 1000)
-        //     }
-        // })
     },
 });
 
@@ -141,13 +164,33 @@ function createLanguageClient(connection: MessageConnection): MonacoLanguageClie
             // use a language id as a document selector
             // documentSelector: ['json'],
             documentSelector: ['lua'],
-            // middleware: {
-            //     workspace: {
-            //         configuration: (params, token, configuration) => {
-            //             return configuration(params, token)
-            //         },
-            //     },
-            // },
+            middleware: {
+                provideCompletionItems: (document: TextDocument, position: Position, context, token, next) => {
+                    if (!document) {
+                        return undefined
+                    }
+                    var potentialTriggerWord = document.lineAt(position)
+                    var matchIdx = potentialTriggerWord.text.indexOf("FETCH_POSE")
+                    if (matchIdx < 0) {
+                        return next(document, position, context, token)
+                    }
+                    // TODO: needs to replace FETCH_POSE. Right now, only replaces up to previous word
+                    var word = document.getWordRangeAtPosition(position);
+                    const endPosition = word ? word.end.character : position.character
+                    var range = new Range(position.line, position.line, matchIdx, endPosition)
+                    return poseProposals2(range)
+
+                    // const fromNextResult = next(document, position, context, token)
+                    // if (fromNextResult && "suggestions" in fromNextResult) {
+                    //     return {
+                    //         ...<Object>fromNextResult,
+                    //         suggestions: {...poseProposals(range), ...<CompletionItem>fromNextResult.suggestions}
+                    //     };
+                    // } else return {
+                    //     suggestions: poseProposals(range)
+                    // }
+                },
+            },
             // disable the default error handler
             errorHandler: {
                 error: () => ErrorAction.Continue,
@@ -162,6 +205,48 @@ function createLanguageClient(connection: MessageConnection): MonacoLanguageClie
         }
     });
 }
+
+function poseProposals2(range: Range): CompletionItem[] {
+    return [
+        {
+            label: 'Position 1',
+            kind: CompletionItemKind.Value,
+            documentation: "Inserts this pose's UUID.",
+            insertText: "3b12b5ba-026d-4983-9087-bfa4125c5afd",
+            range: range,
+            filterText: 'FETCH_POSE Position 1',
+        },
+        {
+            label: 'Position 2',
+            kind: CompletionItemKind.Value,
+            documentation: "Inserts this pose's UUID.",
+            insertText: "3b12b5ba-026d-4983-9087-bfa4125c5afd",
+            range: range,
+            filterText: 'FETCH_POSE Position 2',
+        },
+    ]
+}
+
+// function poseProposals(range: IRange): monaco.languages.CompletionItem[] {
+//     return [
+//         {
+//             label: 'Position 1',
+//             kind: monaco.languages.CompletionItemKind.Value,
+//             documentation: "Inserts this pose's UUID.",
+//             insertText: "3b12b5ba-026d-4983-9087-bfa4125c5afd",
+//             range: range,
+//             filterText: 'FETCH_POSE Position 1',
+//         },
+//         {
+//             label: 'Position 2',
+//             kind: monaco.languages.CompletionItemKind.Value,
+//             documentation: "Inserts this pose's UUID.",
+//             insertText: "3b12b5ba-026d-4983-9087-bfa4125c5afd",
+//             range: range,
+//             filterText: 'FETCH_POSE Position 2',
+//         },
+//     ]
+// }
 
 function createUrl(url: string): string {
     return normalizeUrl(url);

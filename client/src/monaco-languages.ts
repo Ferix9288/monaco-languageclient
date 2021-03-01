@@ -66,14 +66,21 @@ export function testGlob(pattern: string, value: string): boolean {
     return regExp.test(value);
 }
 
+export type MonacoProvideCompletionItemsSignature = (model: monaco.editor.ITextModel, position: monaco.Position, context: monaco.languages.CompletionContext, token: monaco.CancellationToken) => monaco.languages.ProviderResult<monaco.languages.CompletionList>;
+export type MonacoProvideCompletionItemsDecorator = (model: monaco.editor.ITextModel, position: monaco.Position, context: monaco.languages.CompletionContext, token: monaco.CancellationToken, next: MonacoProvideCompletionItemsSignature) => monaco.languages.ProviderResult<monaco.languages.CompletionList>;
+
+export interface Options {
+    provideCompletionItemsDecorator?: MonacoProvideCompletionItemsDecorator
+}
+
 export class MonacoLanguages implements Languages {
 
     constructor(
         protected readonly _monaco: typeof monaco,
         protected readonly p2m: ProtocolToMonacoConverter,
-        protected readonly m2p: MonacoToProtocolConverter
+        protected readonly m2p: MonacoToProtocolConverter,
+        public options?: Options
     ) {
-        console.log("in MonacoLanguages constructor...")
     }
 
     match(selector: DocumentSelector, document: DocumentIdentifier): boolean {
@@ -85,11 +92,9 @@ export class MonacoLanguages implements Languages {
     }
 
     registerCompletionItemProvider(selector: DocumentSelector, provider: CompletionItemProvider, ...triggerCharacters: string[]): Disposable {
-        console.log("monaco-languages:registerCompletionItemProvider...", selector, provider, triggerCharacters)
         const completionProvider = this.createCompletionProvider(selector, provider, ...triggerCharacters);
         const providers = new DisposableCollection();
         for (const language of this.matchLanguage(selector)) {
-            console.log("Provider for ", language, ":", provider)
             providers.push(this._monaco.languages.registerCompletionItemProvider(language, completionProvider))
         }
         ;
@@ -103,11 +108,18 @@ export class MonacoLanguages implements Languages {
                 if (!this.matchModel(selector, MonacoModelIdentifier.fromModel(model))) {
                     return undefined;
                 }
-                const wordUntil = model.getWordUntilPosition(position);
-                const defaultRange = new this._monaco.Range(position.lineNumber, wordUntil.startColumn, position.lineNumber, wordUntil.endColumn);
-                const params = this.m2p.asCompletionParams(model, position, context);
-                const result = await provider.provideCompletionItems(params, token);
-                return result && this.p2m.asCompletionResult(result, defaultRange);
+                const clientProvideCompletionItems = async () => {
+                    const wordUntil = model.getWordUntilPosition(position);
+                    const defaultRange = new this._monaco.Range(position.lineNumber, wordUntil.startColumn, position.lineNumber, wordUntil.endColumn);
+                    const params = this.m2p.asCompletionParams(model, position, context);
+                    const result = await provider.provideCompletionItems(params, token);
+                    return result && this.p2m.asCompletionResult(result, defaultRange);
+                }
+                const decorator = this.options?.provideCompletionItemsDecorator ? this.options.provideCompletionItemsDecorator : undefined
+                if (decorator) {
+                    return decorator(model, position, context, token, clientProvideCompletionItems)
+                }
+                return clientProvideCompletionItems()
             },
             resolveCompletionItem: provider.resolveCompletionItem ? async (item, token) => {
                 const protocolItem = this.m2p.asCompletionItem(item);
