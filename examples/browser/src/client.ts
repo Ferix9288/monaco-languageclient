@@ -2,9 +2,9 @@
  * Copyright (c) 2018 TypeFox GmbH (http://www.typefox.io). All rights reserved.
  * Licensed under the MIT License. See License.txt in the project root for license information.
  * ------------------------------------------------------------------------------------------ */
-import * as monaco from 'monaco-editor-core'
-import { getLanguageService, TextDocument } from "vscode-json-languageservice";
-import { MonacoToProtocolConverter, ProtocolToMonacoConverter } from 'monaco-languageclient/lib/monaco-converter';
+import * as monaco from 'monaco-editor'
+import {getLanguageService, TextDocument} from "vscode-json-languageservice";
+import {MonacoToProtocolConverter, ProtocolToMonacoConverter} from 'monaco-languageclient/lib/monaco-converter';
 
 const LANGUAGE_ID = 'json';
 const MODEL_URI = 'inmemory://model.json'
