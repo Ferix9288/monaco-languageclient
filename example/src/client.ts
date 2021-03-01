@@ -30,14 +30,12 @@ import ITextModel = editor.ITextModel;
 
 const ReconnectingWebSocket = require('reconnecting-websocket');
 
-// register Monaco languages
-// monaco.languages.register({
-//     id: 'json',
-//     extensions: ['.json', '.bowerrc', '.jshintrc', '.jscsrc', '.eslintrc', '.babelrc'],
-//     aliases: ['JSON', 'json'],
-//     mimetypes: ['application/json'],
-// });
+/* Change these constants to match your local directory */
+const websocketURL = 'ws://localhost:3010/lua'
+const rootURI = "file:///Users/fli/fetch-lua/blank"
+const externalLibrary = "/Users/fli/fetch-lua/api"
 
+// register Monaco languages
 monaco.languages.register({
     id: 'lua',
     extensions: ['.lua'],
@@ -53,12 +51,10 @@ monaco.editor.create(document.getElementById("container")!, {
     }
 });
 // install Monaco language client services
-MonacoServices.install(monaco, {rootUri: "file:///Users/fli/fetch-lua/blank"});
+MonacoServices.install(monaco, {rootUri: rootURI});
 
 // create the web socket
-// const url = createUrl('/sampleServer')
-// const url = createUrl('ws://localhost:3010/lua')
-const url = createUrl('ws://5bc8a4e58bd1.ngrok.io/lua')
+const url = createUrl(websocketURL)
 const webSocket = createWebSocket(url);
 
 class WorkspaceConfigurations implements Configurations {
@@ -118,7 +114,7 @@ const workspaceConfiguration: { [key: string]: any } = {
         },
         workspace: {
             library: {
-                "/Users/fli/fetch-lua/api": true,
+                [externalLibrary]: true,
             }
         },
     },
@@ -136,7 +132,6 @@ MonacoServices.get().languages.middleware = {
             return next(model, position, context, token)
         }
         // TODO: fix why this doesn't show when in paren
-        // Also, need to figure out how to correctly merge
         var word = model.getWordUntilPosition(position);
         var range = {
             startLineNumber: position.lineNumber,
@@ -145,15 +140,22 @@ MonacoServices.get().languages.middleware = {
             endColumn: word.endColumn
         };
 
-        const fromNextResult = next(model, position, context, token)
-        if (fromNextResult && "suggestions" in fromNextResult) {
+        const serverResults = next(model, position, context, token)
+        return Promise.resolve(serverResults).then(function (serverResults) {
+            if (serverResults && "suggestions" in serverResults) {
+                const mergedResults = {
+                    ...serverResults,
+                    suggestions: poseProposals(range).concat(serverResults.suggestions)
+                }
+                return mergedResults
+            }
             return {
-                ...fromNextResult,
-                suggestions: {...poseProposals(range), ...fromNextResult.suggestions}
-            };
-        } else return {
-            suggestions: poseProposals(range)
-        }
+                suggestions: poseProposals(range)
+            }
+        }).catch((reason) => {
+            console.log("server results failed: ", reason)
+            return undefined
+        })
     },
 }
 
@@ -191,11 +193,6 @@ class EditorToServerSyncer {
             if (Date.now() - this.lastUpdated >= this.idleTimeTriggerMS) {
                 const textDocument = this.createTextDocument()
                 if (textDocument) {
-                    console.log("firing / refreshing:", textDocument)
-                    // const fullText = this.model.getValue()
-                    // const contentChanges = [{
-                    //     text: fullText,
-                    // }]
                     this.textDocumentEmitter.fire(textDocument)
                 }
             }
@@ -237,7 +234,6 @@ function createLanguageClient(connection: MessageConnection): MonacoLanguageClie
         name: "Sample Language Client",
         clientOptions: {
             // use a language id as a document selector
-            // documentSelector: ['json'],
             documentSelector: ['lua'],
             // disable the default error handler
             errorHandler: {
@@ -278,11 +274,6 @@ function poseProposals(range: IRange): monaco.languages.CompletionItem[] {
 function createUrl(url: string): string {
     return normalizeUrl(url);
 }
-
-// function createUrl(path: string): string {
-//     const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-//     return normalizeUrl(`${protocol}://${location.host}${location.pathname}${path}`);
-// }
 
 function createWebSocket(url: string): WebSocket {
     const socketOptions = {
