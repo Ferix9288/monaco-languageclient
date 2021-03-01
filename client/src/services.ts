@@ -27,6 +27,7 @@ import {
 } from 'vscode-jsonrpc';
 
 import {URI as Uri} from 'vscode-uri';
+import {WorkspaceEmitters} from "./monaco-workspace";
 
 export {
     Disposable, CancellationToken, Event, Emitter
@@ -329,8 +330,8 @@ export interface Workspace {
     readonly onDidSaveTextDocument?: Event<TextDocument>;
 
     applyEdit(changes: WorkspaceEdit): PromiseLike<boolean>;
-
     createFileSystemWatcher?(globPattern: string, ignoreCreateEvents?: boolean, ignoreChangeEvents?: boolean, ignoreDeleteEvents?: boolean): FileSystemWatcher;
+    getEmitters():WorkspaceEmitters;
 }
 
 export interface Commands {

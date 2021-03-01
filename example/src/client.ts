@@ -6,8 +6,15 @@ import {listen} from '@codingame/monaco-jsonrpc';
 import * as monaco from 'monaco-editor'
 import {MessageConnection} from 'vscode-jsonrpc';
 import {
-    MonacoLanguageClient, CloseAction, ErrorAction,
-    MonacoServices, createConnection, Configurations, WorkspaceConfiguration, MonacoProvideCompletionItemsSignature,
+    MonacoLanguageClient,
+    CloseAction,
+    ErrorAction,
+    MonacoServices,
+    createConnection,
+    Configurations,
+    WorkspaceConfiguration,
+    MonacoProvideCompletionItemsSignature,
+    TextDocumentDidChangeEvent,
 } from 'monaco-languageclient';
 import normalizeUrl = require('normalize-url');
 import {Event} from "vscode-languageclient";
@@ -15,7 +22,12 @@ import {
     ConfigurationChangeEvent,
     EventEmitter,
 } from "vscode";
-import {IRange} from "monaco-editor";
+import {editor, IRange} from "monaco-editor";
+import IModel = editor.IModel;
+import {Emitter} from "monaco-languageclient/lib/services";
+import {setInterval} from "timers";
+import {TextDocument} from "vscode-languageserver-textdocument";
+import ITextModel = editor.ITextModel;
 
 const ReconnectingWebSocket = require('reconnecting-websocket');
 
@@ -46,7 +58,8 @@ MonacoServices.install(monaco, {rootUri: "file:///Users/fli/fetch-lua/blank"});
 
 // create the web socket
 // const url = createUrl('/sampleServer')
-const url = createUrl('ws://localhost:3010/lua')
+// const url = createUrl('ws://localhost:3010/lua')
+const url = createUrl('ws://5bc8a4e58bd1.ngrok.io/lua')
 const webSocket = createWebSocket(url);
 
 class WorkspaceConfigurations implements Configurations {
@@ -143,8 +156,83 @@ MonacoServices.get().languages.middleware = {
             suggestions: poseProposals(range)
         }
     },
-
 }
+
+class EditorToServerSyncer {
+
+    protected intervalThread: NodeJS.Timeout | undefined
+    private uri: string
+    private model: ITextModel | undefined
+    private readonly syncFrequencyMS: number
+    private readonly idleTimeTriggerMS: number
+    private lastUpdated: number
+
+    constructor(protected documentChangeEmitter: Emitter<TextDocumentDidChangeEvent>,
+                uri?: string,
+                model?: ITextModel,
+                syncFrequencyMS?: number,
+                idleTimeTriggerMS?: number,
+    ) {
+        this.model = model ? model : undefined
+        this.uri = uri ? uri : ""
+        this.syncFrequencyMS = syncFrequencyMS ? syncFrequencyMS : 5000
+        this.idleTimeTriggerMS = idleTimeTriggerMS ? idleTimeTriggerMS : 3000
+        this.lastUpdated = Date.now()
+    }
+
+    syncLatestChange(uri: string, m: IModel) {
+        this.uri = uri
+        this.model = m
+        this.lastUpdated = Date.now()
+    }
+
+    start() {
+        this.intervalThread = setInterval(() => {
+            if (!this.model) return
+            if (Date.now() - this.lastUpdated >= this.idleTimeTriggerMS) {
+                const textDocument = this.createTextDocument()
+                if (textDocument) {
+                    console.log("firing / refreshing:", textDocument)
+                    const fullRange = this.model.getFullModelRange()
+                    const fullText = this.model.getValue()
+                    const contentChanges = [{
+                        range: {
+                            start: {
+                                line: fullRange.startLineNumber,
+                                character: fullRange.startColumn,
+                            },
+                            end: {
+                                line: fullRange.endLineNumber,
+                                character: fullRange.endColumn,
+                            }
+                        },
+                        text: fullText,
+                    }]
+                    this.documentChangeEmitter.fire({textDocument, contentChanges})
+                }
+            }
+        }, this.syncFrequencyMS)
+    }
+
+    stop() {
+        if (this.intervalThread) clearInterval(this.intervalThread)
+    }
+
+    private createTextDocument(): TextDocument | undefined {
+        if (!this.model) return undefined
+        return TextDocument.create(this.uri, this.model.getModeId(), this.model.getVersionId(), this.model.getValue())
+    }
+}
+
+const wsEmitters = MonacoServices.get().workspace.getEmitters()
+const syncer = new EditorToServerSyncer(wsEmitters.onDidChangeTextDocumentEmitter)
+MonacoServices.get().workspace.middleware = {
+    onDidChangeContentProxy: (uri, model, event, next) => {
+        syncer.syncLatestChange(uri, model)
+        next(uri, model, event)
+    }
+}
+syncer.start()
 
 listen({
     webSocket,

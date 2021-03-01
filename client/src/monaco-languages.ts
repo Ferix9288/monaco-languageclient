@@ -69,7 +69,7 @@ export function testGlob(pattern: string, value: string): boolean {
 export type MonacoProvideCompletionItemsSignature = (model: monaco.editor.ITextModel, position: monaco.Position, context: monaco.languages.CompletionContext, token: monaco.CancellationToken) => monaco.languages.ProviderResult<monaco.languages.CompletionList>;
 export type MonacoProvideCompletionItemsProxy = (model: monaco.editor.ITextModel, position: monaco.Position, context: monaco.languages.CompletionContext, token: monaco.CancellationToken, next: MonacoProvideCompletionItemsSignature) => monaco.languages.ProviderResult<monaco.languages.CompletionList>;
 
-export interface LanguageMiddleware {
+export interface MonacoLanguagesMiddleware {
     provideCompletionItemsProxy?: MonacoProvideCompletionItemsProxy
 }
 
@@ -79,7 +79,7 @@ export class MonacoLanguages implements Languages {
         protected readonly _monaco: typeof monaco,
         protected readonly p2m: ProtocolToMonacoConverter,
         protected readonly m2p: MonacoToProtocolConverter,
-        public middleware?: LanguageMiddleware | undefined
+        public middleware?: MonacoLanguagesMiddleware | undefined
     ) {
     }
 
@@ -108,18 +108,18 @@ export class MonacoLanguages implements Languages {
                 if (!this.matchModel(selector, MonacoModelIdentifier.fromModel(model))) {
                     return undefined;
                 }
-                const clientProvideCompletionItems = async () => {
+                const clientProvideCompletionItems: MonacoProvideCompletionItemsSignature = async (model, position, context, token) => {
                     const wordUntil = model.getWordUntilPosition(position);
                     const defaultRange = new this._monaco.Range(position.lineNumber, wordUntil.startColumn, position.lineNumber, wordUntil.endColumn);
                     const params = this.m2p.asCompletionParams(model, position, context);
                     const result = await provider.provideCompletionItems(params, token);
                     return result && this.p2m.asCompletionResult(result, defaultRange);
                 }
-                const decorator = this.middleware?.provideCompletionItemsProxy ? this.middleware.provideCompletionItemsProxy : undefined
-                if (decorator) {
-                    return decorator(model, position, context, token, clientProvideCompletionItems)
+                const proxy = this.middleware?.provideCompletionItemsProxy ? this.middleware.provideCompletionItemsProxy : undefined
+                if (proxy) {
+                    return proxy(model, position, context, token, clientProvideCompletionItems)
                 }
-                return clientProvideCompletionItems()
+                return clientProvideCompletionItems(model, position, context, token)
             },
             resolveCompletionItem: provider.resolveCompletionItem ? async (item, token) => {
                 const protocolItem = this.m2p.asCompletionItem(item);

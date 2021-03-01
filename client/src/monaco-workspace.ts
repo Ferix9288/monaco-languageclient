@@ -8,25 +8,38 @@ import {MonacoToProtocolConverter, ProtocolToMonacoConverter} from './monaco-con
 import {Workspace, WorkspaceEdit, TextDocumentDidChangeEvent, Event, Emitter, Configurations} from './services';
 import {TextDocument} from 'vscode-languageserver-textdocument'
 
+export type OnDidChangeContentSignature = (uri: string, model: monaco.editor.IModel, event: monaco.editor.IModelContentChangedEvent) => void
+
+export interface MonacoWorkspaceMiddleware {
+    onDidChangeContentProxy?: (uri: string, model: monaco.editor.IModel, event: monaco.editor.IModelContentChangedEvent, next: OnDidChangeContentSignature) => void
+}
+
+export interface WorkspaceEmitters {
+    onDidOpenTextDocumentEmitter: Emitter<TextDocument>
+    onDidCloseTextDocumentEmitter: Emitter<TextDocument>
+    onDidChangeTextDocumentEmitter: Emitter<TextDocumentDidChangeEvent>
+}
+
 export class MonacoWorkspace implements Workspace {
 
     protected readonly documents = new Map<string, TextDocument>();
     protected readonly onDidOpenTextDocumentEmitter = new Emitter<TextDocument>();
     protected readonly onDidCloseTextDocumentEmitter = new Emitter<TextDocument>();
     protected readonly onDidChangeTextDocumentEmitter = new Emitter<TextDocumentDidChangeEvent>();
-    public configurations: Configurations | undefined;
 
     constructor(
         protected readonly _monaco: typeof monaco,
         protected readonly p2m: ProtocolToMonacoConverter,
         protected readonly m2p: MonacoToProtocolConverter,
-        protected _rootUri: string | null = null) {
+        protected _rootUri: string | null = null,
+        public configurations?: Configurations | undefined,
+        public middleware?: MonacoWorkspaceMiddleware | undefined,
+    ) {
         for (const model of this._monaco.editor.getModels()) {
             this.addModel(model);
         }
         this._monaco.editor.onDidCreateModel(model => this.addModel(model));
         this._monaco.editor.onWillDisposeModel(model => this.removeModel(model));
-        this.configurations = undefined;
     }
 
     get rootUri() {
@@ -52,18 +65,26 @@ export class MonacoWorkspace implements Workspace {
     }
 
     protected onDidChangeContent(uri: string, model: monaco.editor.IModel, event: monaco.editor.IModelContentChangedEvent) {
-        const textDocument = this.setModel(uri, model);
-        const contentChanges = [];
-        for (const change of event.changes) {
-            const range = this.m2p.asRange(change.range);
-            const rangeLength = change.rangeLength;
-            const text = change.text;
-            contentChanges.push({range, rangeLength, text});
+
+        const clientOnDidChangeContent: OnDidChangeContentSignature = (uri, model, event) => {
+            const textDocument = this.setModel(uri, model);
+            const contentChanges = [];
+            for (const change of event.changes) {
+                const range = this.m2p.asRange(change.range);
+                const rangeLength = change.rangeLength;
+                const text = change.text;
+                contentChanges.push({range, rangeLength, text});
+            }
+            this.onDidChangeTextDocumentEmitter.fire({
+                textDocument,
+                contentChanges
+            });
         }
-        this.onDidChangeTextDocumentEmitter.fire({
-            textDocument,
-            contentChanges
-        });
+        const proxy = this.middleware?.onDidChangeContentProxy ? this.middleware.onDidChangeContentProxy : undefined
+        if (proxy) {
+            return proxy(uri, model, event, clientOnDidChangeContent)
+        }
+        return clientOnDidChangeContent(uri, model, event)
     }
 
     protected setModel(uri: string, model: monaco.editor.IModel): TextDocument {
@@ -137,5 +158,13 @@ export class MonacoWorkspace implements Workspace {
             );
         });
         return Promise.resolve(true);
+    }
+
+    getEmitters(): WorkspaceEmitters {
+        return {
+            onDidOpenTextDocumentEmitter: this.onDidOpenTextDocumentEmitter,
+            onDidCloseTextDocumentEmitter: this.onDidCloseTextDocumentEmitter,
+            onDidChangeTextDocumentEmitter: this.onDidChangeTextDocumentEmitter,
+        }
     }
 }
