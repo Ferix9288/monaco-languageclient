@@ -14,7 +14,6 @@ import {
     Configurations,
     WorkspaceConfiguration,
     MonacoProvideCompletionItemsSignature,
-    TextDocumentDidChangeEvent,
 } from 'monaco-languageclient';
 import normalizeUrl = require('normalize-url');
 import {Event} from "vscode-languageclient";
@@ -167,7 +166,7 @@ class EditorToServerSyncer {
     private readonly idleTimeTriggerMS: number
     private lastUpdated: number
 
-    constructor(protected documentChangeEmitter: Emitter<TextDocumentDidChangeEvent>,
+    constructor(protected textDocumentEmitter: Emitter<TextDocument>,
                 uri?: string,
                 model?: ITextModel,
                 syncFrequencyMS?: number,
@@ -193,22 +192,11 @@ class EditorToServerSyncer {
                 const textDocument = this.createTextDocument()
                 if (textDocument) {
                     console.log("firing / refreshing:", textDocument)
-                    const fullRange = this.model.getFullModelRange()
-                    const fullText = this.model.getValue()
-                    const contentChanges = [{
-                        range: {
-                            start: {
-                                line: fullRange.startLineNumber,
-                                character: fullRange.startColumn,
-                            },
-                            end: {
-                                line: fullRange.endLineNumber,
-                                character: fullRange.endColumn,
-                            }
-                        },
-                        text: fullText,
-                    }]
-                    this.documentChangeEmitter.fire({textDocument, contentChanges})
+                    // const fullText = this.model.getValue()
+                    // const contentChanges = [{
+                    //     text: fullText,
+                    // }]
+                    this.textDocumentEmitter.fire(textDocument)
                 }
             }
         }, this.syncFrequencyMS)
@@ -225,7 +213,7 @@ class EditorToServerSyncer {
 }
 
 const wsEmitters = MonacoServices.get().workspace.getEmitters()
-const syncer = new EditorToServerSyncer(wsEmitters.onDidChangeTextDocumentEmitter)
+const syncer = new EditorToServerSyncer(wsEmitters.onDidOpenTextDocumentEmitter)
 MonacoServices.get().workspace.middleware = {
     onDidChangeContentProxy: (uri, model, event, next) => {
         syncer.syncLatestChange(uri, model)
