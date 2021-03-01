@@ -7,18 +7,15 @@ import * as monaco from 'monaco-editor'
 import {MessageConnection} from 'vscode-jsonrpc';
 import {
     MonacoLanguageClient, CloseAction, ErrorAction,
-    MonacoServices, createConnection, Configurations, WorkspaceConfiguration, //MonacoProvideCompletionItemsSignature,
+    MonacoServices, createConnection, Configurations, WorkspaceConfiguration, MonacoProvideCompletionItemsSignature,
 } from 'monaco-languageclient';
 import normalizeUrl = require('normalize-url');
 import {Event} from "vscode-languageclient";
 import {
-    CompletionItem,
-    CompletionItemKind,
     ConfigurationChangeEvent,
     EventEmitter,
-    Position, Range,
-    TextDocument
 } from "vscode";
+import {IRange} from "monaco-editor";
 
 const ReconnectingWebSocket = require('reconnecting-websocket');
 
@@ -116,36 +113,38 @@ const workspaceConfiguration: { [key: string]: any } = {
 }
 
 MonacoServices.get().workspace.configurations = new WorkspaceConfigurations(workspaceConfiguration)
-// MonacoServices.get().languages.options = {
-//     provideCompletionItemsDecorator: (model: monaco.editor.ITextModel, position: monaco.Position, context: monaco.languages.CompletionContext, token: monaco.CancellationToken, next: MonacoProvideCompletionItemsSignature): monaco.languages.ProviderResult<monaco.languages.CompletionList> => {
-//         if (!model) {
-//             return undefined
-//         }
-//         var potentialTriggerWord = model.getLineContent(position.lineNumber)
-//         var matchIdx = potentialTriggerWord.indexOf("FETCH_POSE")
-//         if (matchIdx < 0) {
-//             return next(model, position, context, token)
-//         }
-//         // TODO: needs to replace FETCH_POSE. Right now, only replaces up to previous word
-//         var word = model.getWordUntilPosition(position);
-//         var range = {
-//             startLineNumber: position.lineNumber,
-//             endLineNumber: position.lineNumber,
-//             startColumn: matchIdx,
-//             endColumn: word.endColumn
-//         };
-//
-//         const fromNextResult = next(model, position, context, token)
-//         if (fromNextResult && "suggestions" in fromNextResult) {
-//             return {
-//                 ...fromNextResult,
-//                 suggestions: {...poseProposals(range), ...fromNextResult.suggestions}
-//             };
-//         } else return {
-//             suggestions: poseProposals(range)
-//         }
-//     },
-// }
+MonacoServices.get().languages.middleware = {
+    provideCompletionItemsProxy: (model: monaco.editor.ITextModel, position: monaco.Position, context: monaco.languages.CompletionContext, token: monaco.CancellationToken, next: MonacoProvideCompletionItemsSignature): monaco.languages.ProviderResult<monaco.languages.CompletionList> => {
+        if (!model) {
+            return undefined
+        }
+        var potentialTriggerWord = model.getLineContent(position.lineNumber)
+        var matchIdx = potentialTriggerWord.indexOf("FETCH_POSE")
+        if (matchIdx < 0) {
+            return next(model, position, context, token)
+        }
+        // TODO: fix why this doesn't show when in paren
+        // Also, need to figure out how to correctly merge
+        var word = model.getWordUntilPosition(position);
+        var range = {
+            startLineNumber: position.lineNumber,
+            endLineNumber: position.lineNumber,
+            startColumn: matchIdx,
+            endColumn: word.endColumn
+        };
+
+        const fromNextResult = next(model, position, context, token)
+        if (fromNextResult && "suggestions" in fromNextResult) {
+            return {
+                ...fromNextResult,
+                suggestions: {...poseProposals(range), ...fromNextResult.suggestions}
+            };
+        } else return {
+            suggestions: poseProposals(range)
+        }
+    },
+
+}
 
 listen({
     webSocket,
@@ -164,33 +163,6 @@ function createLanguageClient(connection: MessageConnection): MonacoLanguageClie
             // use a language id as a document selector
             // documentSelector: ['json'],
             documentSelector: ['lua'],
-            middleware: {
-                provideCompletionItems: (document: TextDocument, position: Position, context, token, next) => {
-                    if (!document) {
-                        return undefined
-                    }
-                    var potentialTriggerWord = document.lineAt(position)
-                    var matchIdx = potentialTriggerWord.text.indexOf("FETCH_POSE")
-                    if (matchIdx < 0) {
-                        return next(document, position, context, token)
-                    }
-                    // TODO: needs to replace FETCH_POSE. Right now, only replaces up to previous word
-                    var word = document.getWordRangeAtPosition(position);
-                    const endPosition = word ? word.end.character : position.character
-                    var range = new Range(position.line, position.line, matchIdx, endPosition)
-                    return poseProposals2(range)
-
-                    // const fromNextResult = next(document, position, context, token)
-                    // if (fromNextResult && "suggestions" in fromNextResult) {
-                    //     return {
-                    //         ...<Object>fromNextResult,
-                    //         suggestions: {...poseProposals(range), ...<CompletionItem>fromNextResult.suggestions}
-                    //     };
-                    // } else return {
-                    //     suggestions: poseProposals(range)
-                    // }
-                },
-            },
             // disable the default error handler
             errorHandler: {
                 error: () => ErrorAction.Continue,
@@ -206,11 +178,11 @@ function createLanguageClient(connection: MessageConnection): MonacoLanguageClie
     });
 }
 
-function poseProposals2(range: Range): CompletionItem[] {
+function poseProposals(range: IRange): monaco.languages.CompletionItem[] {
     return [
         {
             label: 'Position 1',
-            kind: CompletionItemKind.Value,
+            kind: monaco.languages.CompletionItemKind.Value,
             documentation: "Inserts this pose's UUID.",
             insertText: "3b12b5ba-026d-4983-9087-bfa4125c5afd",
             range: range,
@@ -218,7 +190,7 @@ function poseProposals2(range: Range): CompletionItem[] {
         },
         {
             label: 'Position 2',
-            kind: CompletionItemKind.Value,
+            kind: monaco.languages.CompletionItemKind.Value,
             documentation: "Inserts this pose's UUID.",
             insertText: "3b12b5ba-026d-4983-9087-bfa4125c5afd",
             range: range,
@@ -226,27 +198,6 @@ function poseProposals2(range: Range): CompletionItem[] {
         },
     ]
 }
-
-// function poseProposals(range: IRange): monaco.languages.CompletionItem[] {
-//     return [
-//         {
-//             label: 'Position 1',
-//             kind: monaco.languages.CompletionItemKind.Value,
-//             documentation: "Inserts this pose's UUID.",
-//             insertText: "3b12b5ba-026d-4983-9087-bfa4125c5afd",
-//             range: range,
-//             filterText: 'FETCH_POSE Position 1',
-//         },
-//         {
-//             label: 'Position 2',
-//             kind: monaco.languages.CompletionItemKind.Value,
-//             documentation: "Inserts this pose's UUID.",
-//             insertText: "3b12b5ba-026d-4983-9087-bfa4125c5afd",
-//             range: range,
-//             filterText: 'FETCH_POSE Position 2',
-//         },
-//     ]
-// }
 
 function createUrl(url: string): string {
     return normalizeUrl(url);

@@ -67,10 +67,10 @@ export function testGlob(pattern: string, value: string): boolean {
 }
 
 export type MonacoProvideCompletionItemsSignature = (model: monaco.editor.ITextModel, position: monaco.Position, context: monaco.languages.CompletionContext, token: monaco.CancellationToken) => monaco.languages.ProviderResult<monaco.languages.CompletionList>;
-export type MonacoProvideCompletionItemsDecorator = (model: monaco.editor.ITextModel, position: monaco.Position, context: monaco.languages.CompletionContext, token: monaco.CancellationToken, next: MonacoProvideCompletionItemsSignature) => monaco.languages.ProviderResult<monaco.languages.CompletionList>;
+export type MonacoProvideCompletionItemsProxy = (model: monaco.editor.ITextModel, position: monaco.Position, context: monaco.languages.CompletionContext, token: monaco.CancellationToken, next: MonacoProvideCompletionItemsSignature) => monaco.languages.ProviderResult<monaco.languages.CompletionList>;
 
-export interface Options {
-    provideCompletionItemsDecorator?: MonacoProvideCompletionItemsDecorator
+export interface LanguageMiddleware {
+    provideCompletionItemsProxy?: MonacoProvideCompletionItemsProxy
 }
 
 export class MonacoLanguages implements Languages {
@@ -79,7 +79,7 @@ export class MonacoLanguages implements Languages {
         protected readonly _monaco: typeof monaco,
         protected readonly p2m: ProtocolToMonacoConverter,
         protected readonly m2p: MonacoToProtocolConverter,
-        public options?: Options
+        public middleware?: LanguageMiddleware | undefined
     ) {
     }
 
@@ -115,7 +115,7 @@ export class MonacoLanguages implements Languages {
                     const result = await provider.provideCompletionItems(params, token);
                     return result && this.p2m.asCompletionResult(result, defaultRange);
                 }
-                const decorator = this.options?.provideCompletionItemsDecorator ? this.options.provideCompletionItemsDecorator : undefined
+                const decorator = this.middleware?.provideCompletionItemsProxy ? this.middleware.provideCompletionItemsProxy : undefined
                 if (decorator) {
                     return decorator(model, position, context, token, clientProvideCompletionItems)
                 }
